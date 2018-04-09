@@ -31,6 +31,7 @@ MAKEFLAGS += -rR --include-dir=$(CURDIR)
 #make内嵌的隐含变量。
 
 # 避免奇怪的字符集依赖关系，去除所有本地化的设置，让命令能正确执行。
+# 不希望将一个变量传递给子 makefile 时,可以使用指示符“unexport”来声明这个变量(变量与递归)
 unexport LC_ALL
 LC_COLLATE=C
 LC_NUMERIC=C
@@ -49,7 +50,9 @@ unexport GREP_OPTIONS
 
 
 #Makefile支持的选项（最常用到的）
-#选项V，用于开启或者关闭执行make时编译信息的打印
+#选项V，用于开启或者关闭执行make时编译信息的打印，V=1 打印信息
+#--------------------------------------------------------------------------------------------------------
+V=XXX
 ifeq ("$(origin V)", "command line")
   KBUILD_VERBOSE = $(V)
 endif
@@ -64,7 +67,7 @@ else
   quiet=quiet_
   Q = @ #在make中，一条命令前加@表示执行该命令的时候，不打印出执行的命令。
 endif
-
+#---------------------------------------------------------------------------------------------------------
 
 # 如果用户执行 make -s ,则禁用makefile中的命令输出。
 ifneq ($(filter 4.%,$(MAKE_VERSION)),)	# make-4
@@ -76,26 +79,22 @@ ifneq ($(filter s% -s%,$(MAKEFLAGS)),)
   quiet=silent_
 endif
 endif
-
+#上层定义的变量传递给子 make，全局的
 export quiet Q KBUILD_VERBOSE
 
-# kbuild supports saving output files in a separate directory.
-# To locate output files in a separate directory two syntaxes are supported.
-# In both cases the working directory must be the root of the kernel src.
-# 1) O=
-# Use "make O=dir/to/store/output/files/"
-#
-# 2) Set KBUILD_OUTPUT
-# Set the environment variable KBUILD_OUTPUT to point to the directory
-# where the output files shall be placed.
+# 1)<=========选项O/KBUILD_OUTPUT，指定out-of-build时的输出路径
+# Kbuild支持在一个单独的路径下保存输出文件。
+# 设置输出文件在一个单独的路径有两种方法。在这两种情况下的工作路径必须是内核源码的根路径。
+#1)使用"make O=dir/to/store/output/files/"
+#2)设置kbuild_output
+
+#设置环境变量KBUILD_OUTPUT 来指向输出文件应放置的路径
 # export KBUILD_OUTPUT=dir/to/store/output/files/
 # make
-#
-# The O= assignment takes precedence over the KBUILD_OUTPUT environment
-# variable.
+# 使用O = 分配优先于KBUILD_OUTPUT环境
 
-# KBUILD_SRC is set on invocation of make in OBJ directory
-# KBUILD_SRC is not intended to be used by the regular user (for now)
+# KBUILD_SRC is set on make的调用 in OBJ 路径
+# KBUILD_SRC 不打算被普通用户使用（现在） (for now)
 ifeq ($(KBUILD_SRC),)
 
 # OK, Make called in directory where kernel src resides
@@ -104,7 +103,7 @@ ifeq ("$(origin O)", "command line")
   KBUILD_OUTPUT := $(O)
 endif
 
-# That's our default target when none is given on the command line
+# 当make指令没有指定目标时，默认的目标规则    <==================================all
 PHONY := _all
 _all:
 
@@ -112,21 +111,21 @@ _all:
 $(CURDIR)/Makefile Makefile: ;
 
 ifneq ($(KBUILD_OUTPUT),)
-# Invoke a second make in the output directory, passing relevant variables
-# check that the output directory actually exists
+# 调用输出路径中的第二个元素，传递相关变量
+# 检查输出路径是否实际存在
 saved-output := $(KBUILD_OUTPUT)
 KBUILD_OUTPUT := $(shell mkdir -p $(KBUILD_OUTPUT) && cd $(KBUILD_OUTPUT) \
 								&& /bin/pwd)
 $(if $(KBUILD_OUTPUT),, \
      $(error failed to create output directory "$(saved-output)"))
-
+# make 在执行时设置一个特殊变量“MAKECMDGOALS”,此变量记录了命令行参数指定的终极目标列表
 PHONY += $(MAKECMDGOALS) sub-make
 
 $(filter-out _all sub-make $(CURDIR)/Makefile, $(MAKECMDGOALS)) _all: sub-make
 	@:
 
 sub-make: FORCE
-	$(Q)$(MAKE) -C $(KBUILD_OUTPUT) KBUILD_SRC=$(CURDIR) \
+    $(Q)$(MAKE) -C $(KBUILD_OUTPUT) KBUILD_SRC=$(CURDIR) \
 	-f $(CURDIR)/Makefile $(filter-out _all sub-make,$(MAKECMDGOALS))
 
 # Leave processing to above invocation of make
@@ -159,13 +158,13 @@ ifndef KBUILD_CHECKSRC
   KBUILD_CHECKSRC = 0
 endif
 
+#选项M/SUBDIRS，源码外模块编译时会用到
 # Use make M=dir to specify directory of external module to build
 # Old syntax make ... SUBDIRS=$PWD is still supported
 # Setting the environment variable KBUILD_EXTMOD take precedence
 ifdef SUBDIRS
   KBUILD_EXTMOD ?= $(SUBDIRS)
 endif
-
 ifeq ("$(origin M)", "command line")
   KBUILD_EXTMOD := $(M)
 endif
