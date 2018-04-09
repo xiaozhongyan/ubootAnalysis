@@ -128,29 +128,28 @@ sub-make: FORCE
     $(Q)$(MAKE) -C $(KBUILD_OUTPUT) KBUILD_SRC=$(CURDIR) \
 	-f $(CURDIR)/Makefile $(filter-out _all sub-make,$(MAKECMDGOALS))
 
-# Leave processing to above invocation of make
+# 离开第一层make的调用。
+# 跳出makefile
 skip-makefile := 1
 endif # ifneq ($(KBUILD_OUTPUT),)
 endif # ifeq ($(KBUILD_SRC),)
 
-# We process the rest of the Makefile if this is the final invocation of make
+# 第二次进入makefile 时调用。
 ifeq ($(skip-makefile),)
 
-# Do not print "Entering directory ...",
-# but we want to display it when entering to the output directory
-# so that IDEs/editors are able to understand relative filenames.
+#
+# -w   --print-directory
+# 在 make 进入一个目录读取 Makefile 之前打印工作目录。这个选项可以帮助我
+# 们调试 Makefile,跟踪定位错误。使用“-C”选项时默认打开这个选项。
+# --no-print-directory
+# 取消“-w”选项。可以是用在递归的 make 调用过程中,取消“-C”参数的默认打开“-w”功能。
 MAKEFLAGS += --no-print-directory
 
-# Call a source code checker (by default, "sparse") as part of the
-# C compilation.
-#
-# Use 'make C=1' to enable checking of only re-compiled files.
-# Use 'make C=2' to enable checking of *all* source files, regardless
-# of whether they are re-compiled or not.
-#
-# See the file "Documentation/sparse.txt" for more details, including
-# where to get the "sparse" utility.
-选项C，用于开启或者关闭静态代码检查
+#选项C，用于开启或者关闭静态代码检查
+#调用源代码检查器（默认情况下，“sparse”）C编译的一部分
+#使用 'make C=1' 使只重新编译的文件检查。
+#使用 'make C=2'使所有源文件检查，无论是否重新编译。
+#看文件"Documentation/sparse.txt"的更多细节，包括哪里有"sparse"的效用。
 ifeq ("$(origin C)", "command line")
   KBUILD_CHECKSRC = $(C)
 endif
@@ -158,32 +157,31 @@ ifndef KBUILD_CHECKSRC
   KBUILD_CHECKSRC = 0
 endif
 
-#选项M/SUBDIRS，源码外模块编译时会用到
-# Use make M=dir to specify directory of external module to build
-# Old syntax make ... SUBDIRS=$PWD is still supported
-# Setting the environment variable KBUILD_EXTMOD take precedence
+
+# 旧语法 make ... SUBDIRS=$PWD 依然支持
 ifdef SUBDIRS
   KBUILD_EXTMOD ?= $(SUBDIRS)
 endif
+#选项M/SUBDIRS，源码外模块编译时会用到
+# 使用make M=dir 指定要构建的外部模块的路径
+# 预先设置环境变量KBUILD_EXTMOD
 ifeq ("$(origin M)", "command line")
   KBUILD_EXTMOD := $(M)
 endif
 
-# If building an external module we do not care about the all: rule
-# but instead _all depend on modules
+#如果建立一个外部模块我们不在乎 all:的规则,而_all取决于modules
 PHONY += all
 ifeq ($(KBUILD_EXTMOD),)
 _all: all
 else
 _all: modules
 endif
-
-ifeq ($(KBUILD_SRC),)
-        # building in the source tree
+#定义相关路径
+ifeq ($(KBUILD_SRC),)#变量KBUILD_SRC为空时，srctree为当前目录 
         srctree := .
 else
         ifeq ($(KBUILD_SRC)/,$(dir $(CURDIR)))
-                # building in a subdirectory of the source tree
+                # 在源树的子目录中构建
                 srctree := ..
         else
                 srctree := $(KBUILD_SRC)
@@ -192,16 +190,19 @@ endif
 objtree		:= .
 src		:= $(srctree)
 obj		:= $(objtree)
-
+#GNU make 可以识别一个特殊变量“VPATH”。通过变量“VPATH”可以指定依赖
+#文件的搜索路径,当规则的依赖文件在当前目录不存在时,make 会在此变量所指定的
+#目录下去寻找这些依赖文件
 VPATH		:= $(srctree)$(if $(KBUILD_EXTMOD),:$(KBUILD_EXTMOD))
-
+#全局化变量 srctree objtree VPATH 让子make 可见
 export srctree objtree VPATH
 
-# Make sure CDPATH settings don't interfere
+# 确保 CDPATH 设置不干扰
 unexport CDPATH
-
 #########################################################################
-
+# 获取主机类型和主机系统
+# 执行shell命令  uname -m 查看主机类型
+# sed -e命令进行替换，比如将i386替换成i.86，并将结果放入变量HOSTARCH 。
 HOSTARCH := $(shell uname -m | \
 	sed -e s/i.86/x86/ \
 	    -e s/sun4u/sparc64/ \
@@ -211,7 +212,8 @@ HOSTARCH := $(shell uname -m | \
 	    -e s/ppc/powerpc/ \
 	    -e s/macppc/powerpc/\
 	    -e s/sh.*/sh/)
-
+# uname -s 查看主机操作系统，tr '[:upper:]' '[:lower:]'将所有大写变小写，
+#然后假如有cygwin，替换成cygwin.*，并将结果放入变量HOSTOS 
 HOSTOS := $(shell uname -s | tr '[:upper:]' '[:lower:]' | \
 	    sed -e 's/\(cygwin\).*/cygwin/')
 
@@ -219,15 +221,15 @@ export	HOSTARCH HOSTOS
 
 #########################################################################
 
-# set default to nothing for native builds
+# 为本地构建设置默认值为零
 ifeq ($(HOSTARCH),$(ARCH))
 CROSS_COMPILE ?=
 endif
-
+#引入.config文件，并将文件环境变量设为全局可见。
 KCONFIG_CONFIG	?= .config
 export KCONFIG_CONFIG
 
-# SHELL used by kbuild
+# 选择/bin/bash
 CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
@@ -242,75 +244,47 @@ ifeq ($(HOSTOS),cygwin)
 HOSTCFLAGS	+= -ansi
 endif
 
-# Mac OS X / Darwin's C preprocessor is Apple specific.  It
-# generates numerous errors and warnings.  We want to bypass it
-# and use GNU C's cpp.	To do this we pass the -traditional-cpp
-# option to the compiler.  Note that the -traditional-cpp flag
-# DOES NOT have the same semantics as GNU C's flag, all it does
-# is invoke the GNU preprocessor in stock ANSI/ISO C fashion.
-#
-# Apple's linker is similar, thanks to the new 2 stage linking
-# multiple symbol definitions are treated as errors, hence the
-# -multiply_defined suppress option to turn off this error.
-#
+#------------------------------------------------------------------------------------------
+# Mac OS X / Darwin的C预处理器是苹果专用。它产生大量的错误和警告。
+#我们想绕过它使用GNU C的CPP。为此我们通过-traditional-cpp选项编译。
+#请注意，传统的CPP标志与GNU C的标志没有相同的语义，
+#它所做的只是在现有ANSI/ISO C的风格下调用GNU预处理程序。
+#苹果的连接器类似，由于新的2级链接多个符号定义被视为错误，因此用 - multiply_defined抑制选择关闭这个错误。
 ifeq ($(HOSTOS),darwin)
-# get major and minor product version (e.g. '10' and '6' for Snow Leopard)
 DARWIN_MAJOR_VERSION	= $(shell sw_vers -productVersion | cut -f 1 -d '.')
 DARWIN_MINOR_VERSION	= $(shell sw_vers -productVersion | cut -f 2 -d '.')
-
 os_x_before	= $(shell if [ $(DARWIN_MAJOR_VERSION) -le $(1) -a \
 	$(DARWIN_MINOR_VERSION) -le $(2) ] ; then echo "$(3)"; else echo "$(4)"; fi ;)
-
-# Snow Leopards build environment has no longer restrictions as described above
 HOSTCC       = $(call os_x_before, 10, 5, "cc", "gcc")
 HOSTCFLAGS  += $(call os_x_before, 10, 4, "-traditional-cpp")
 HOSTLDFLAGS += $(call os_x_before, 10, 5, "-multiply_defined suppress")
-
-# since Lion (10.7) ASLR is on by default, but we use linker generated lists
-# in some host tools which is a problem then ... so disable ASLR for these
-# tools
 HOSTLDFLAGS += $(call os_x_before, 10, 7, "", "-Xlinker -no_pie")
 endif
+#------------------------------------------------------------------------------------------
 
-# Decide whether to build built-in, modular, or both.
-# Normally, just do built-in.
-
+#------------------------------------------------------------------------------------------
+#决定是否建立内置、模块或两者。通常只是做内置。
+#如果我们只有“make modules”，不编译内置对象。
+#当我们用 modversions 构建模块，我们需要在递归下降时考虑内置对象，
+#为了确保校验是在我们记录他们之前更新。
 KBUILD_MODULES :=
 KBUILD_BUILTIN := 1
-
-# If we have only "make modules", don't compile built-in objects.
-# When we're building modules with modversions, we need to consider
-# the built-in objects during the descend as well, in order to
-# make sure the checksums are up to date before we record them.
-
 ifeq ($(MAKECMDGOALS),modules)
   KBUILD_BUILTIN := $(if $(CONFIG_MODVERSIONS),1)
 endif
-
-# If we have "make <whatever> modules", compile modules
-# in addition to whatever we do anyway.
-# Just "make" or "make all" shall build modules as well
-
-# U-Boot does not need modules
-#ifneq ($(filter all _all modules,$(MAKECMDGOALS)),)
-#  KBUILD_MODULES := 1
-#endif
-
-#ifeq ($(MAKECMDGOALS),)
-#  KBUILD_MODULES := 1
-#endif
+#------------------------------------------------------------------------------------------
 
 export KBUILD_MODULES KBUILD_BUILTIN
 export KBUILD_CHECKSRC KBUILD_SRC KBUILD_EXTMOD
 
-# We need some generic definitions (do not try to remake the file).
+# 我们需要一些通用的定义（不要试图重新创建文件）
 scripts/Kbuild.include: ;
 include scripts/Kbuild.include
 
-# Make variables (CC, etc...)
-
+#------------------------------------------------------------------------------------------
+# 定义交叉编译链工具
 AS		= $(CROSS_COMPILE)as
-# Always use GNU ld
+# 总是使用 GNU ld
 ifneq ($(shell $(CROSS_COMPILE)ld.bfd -v 2> /dev/null),)
 LD		= $(CROSS_COMPILE)ld.bfd
 else
@@ -340,11 +314,14 @@ KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
 		   -fno-builtin -ffreestanding
 KBUILD_CFLAGS	+= -fshort-wchar
 KBUILD_AFLAGS   := -D__ASSEMBLY__
+#--------------------------------------------------------------------------------------------
 
-# Read UBOOTRELEASE from include/config/uboot.release (if it exists)
+
+# 从 include/config/uboot.release读取 UBOOTRELEASE  (如果存在的话)
 UBOOTRELEASE = $(shell cat include/config/uboot.release 2> /dev/null)
 UBOOTVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
 
+#以下这些环境变量在.config文件中定义了
 export VERSION PATCHLEVEL SUBLEVEL UBOOTRELEASE UBOOTVERSION
 export ARCH CPU BOARD VENDOR SOC CPUDIR BOARDDIR
 export CONFIG_SHELL HOSTCC HOSTCFLAGS HOSTLDFLAGS CROSS_COMPILE AS LD CC
@@ -355,13 +332,10 @@ export HOSTCXX HOSTCXXFLAGS CHECK CHECKFLAGS DTC DTC_FLAGS
 export KBUILD_CPPFLAGS NOSTDINC_FLAGS UBOOTINCLUDE OBJCOPYFLAGS LDFLAGS
 export KBUILD_CFLAGS KBUILD_AFLAGS
 
-# When compiling out-of-tree modules, put MODVERDIR in the module
-# tree rather than in the kernel tree. The kernel tree might
-# even be read-only.
+#编译时出树模块，把 MODVERDIR 置于模块中树而不是在内核树。内核树可能甚至是只读的。
 export MODVERDIR := $(if $(KBUILD_EXTMOD),$(firstword $(KBUILD_EXTMOD))/).tmp_versions
 
-# Files to ignore in find ... statements
-
+#在查找中忽略这些文件。。。
 export RCS_FIND_IGNORE := \( -name SCCS -o -name BitKeeper -o -name .svn -o    \
 			  -name CVS -o -name .pc -o -name .hg -o -name .git \) \
 			  -prune -o
@@ -369,21 +343,19 @@ export RCS_TAR_IGNORE := --exclude SCCS --exclude BitKeeper --exclude .svn \
 			 --exclude CVS --exclude .pc --exclude .hg --exclude .git
 
 # ===========================================================================
-# Rules shared between *config targets and build targets
+# 规则共享 *config 目标和构建目标
 
-# Basic helpers built in scripts/
 PHONY += scripts_basic
 scripts_basic:
 	$(Q)$(MAKE) $(build)=scripts/basic
 	$(Q)rm -f .tmp_quiet_recordmcount
 
-# To avoid any implicit rule to kick in, define an empty command.
+
+# 为了避免出现任何隐含规则，定义一个空命令。
 scripts/basic/%: scripts_basic ;
 
 PHONY += outputmakefile
-# outputmakefile generates a Makefile in the output directory, if using a
-# separate output directory. This allows convenient use of make in the
-# output directory.
+# outputmakefile生成Makefile文件的输出目录，如果使用一个单独的输出目录。这允许在输出目录中方便地使用。
 outputmakefile:
 ifneq ($(KBUILD_SRC),)
 	$(Q)ln -fsn $(srctree) source
@@ -391,11 +363,11 @@ ifneq ($(KBUILD_SRC),)
 	    $(srctree) $(objtree) $(VERSION) $(PATCHLEVEL)
 endif
 
-# To make sure we do not include .config for any of the *config targets
-# catch them early, and hand them over to scripts/kconfig/Makefile
-# It is allowed to specify more targets when calling make, including
-# mixing *config targets and build targets.
-# For example 'make oldconfig all'.
+
+#确保在.config文件中不包括*config目标，如果有尽早发现并把他们提交到scripts/kconfig/Makefile
+#当在调用make时可以指定更多的目标，包括混合*config目标和build目标。
+#例如“make oldconfig all"。
+在指定混合目标时进行检测，使make在第二次make调用 并在本例中不包括x的第二次调用（对于x）。
 # Detect when mixed targets is specified, and make a second invocation
 # of make so .config is not included in this case either (for *config).
 
