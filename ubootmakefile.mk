@@ -135,6 +135,7 @@ skip-makefile := 1
 endif # ifneq ($(KBUILD_OUTPUT),)
 endif # ifeq ($(KBUILD_SRC),)
 
+
 # 第二层进入makefile 时调用。
 ifeq ($(skip-makefile),)
 
