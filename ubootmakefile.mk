@@ -857,9 +857,10 @@ u-boot.bin: u-boot-fit-dtb.bin FORCE
 else ifeq ($(CONFIG_OF_SEPARATE),y)
 u-boot-dtb.bin: u-boot-nodtb.bin dts/dt.dtb FORCE
 	$(call if_changed,cat)
-
+# if_changed函数检测依赖文件是否有更新或目标文件是否不存在，
+# 是的话，直接将u-boot-dtb.bin复制为u-boot.bin
 u-boot.bin: u-boot-dtb.bin FORCE
-	$(call if_changed,copy)
+	$(call if_changed,copy) 
 else
 u-boot.bin: u-boot-nodtb.bin FORCE
 	$(call if_changed,copy)
