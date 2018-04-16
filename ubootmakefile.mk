@@ -65,7 +65,7 @@ ifeq ($(KBUILD_VERBOSE),1)
   Q =
 else
   quiet=quiet_
-  Q = @ #在make中，一条命令前加@表示执行该命令的时候，不打印出执行的命令。
+  Q = @ # 在make中，一条命令前加@表示执行该命令的时候，不打印出执行的命令。
 endif
 #---------------------------------------------------------------------------------------------------------
 
@@ -79,16 +79,17 @@ ifneq ($(filter s% -s%,$(MAKEFLAGS)),)
   quiet=silent_
 endif
 endif
-#上层定义的变量传递给子 make，全局的
+# 全局的,上层定义的变量传递给子 make，
 export quiet Q KBUILD_VERBOSE
 
 # 1)<=========选项O/KBUILD_OUTPUT，指定out-of-build时的输出路径
 # Kbuild支持在一个单独的路径下保存输出文件。
-# 设置输出文件在一个单独的路径有两种方法。在这两种情况下的工作路径必须是内核源码的根路径。
-#1)使用"make O=dir/to/store/output/files/"
-#2)设置kbuild_output
+# 设置make生成的输出文件在一个单独的路径有两种方法。
+# 在这两种情况下的工作路径必须是内核源码的根路径。
+# 1)使用"make O=dir/to/store/output/files/"
+# 2)设置kbuild_output
 
-#设置环境变量KBUILD_OUTPUT 来指向输出文件应放置的路径
+# 设置环境变量KBUILD_OUTPUT 来指向输出文件应放置的路径
 # export KBUILD_OUTPUT=dir/to/store/output/files/
 # make
 # 使用O = 分配优先于KBUILD_OUTPUT环境
@@ -147,11 +148,11 @@ ifeq ($(skip-makefile),)
 # 取消“-w”选项。可以是用在递归的 make 调用过程中,取消“-C”参数的默认打开“-w”功能。
 MAKEFLAGS += --no-print-directory
 
-#选项C，用于开启或者关闭静态代码检查
-#调用源代码检查器（默认情况下，“sparse”）C编译的一部分
-#使用 'make C=1' 使只重新编译的文件检查。
-#使用 'make C=2'使所有源文件检查，无论是否重新编译。
-#看文件"Documentation/sparse.txt"的更多细节，包括哪里有"sparse"的效用。
+# 选项C，用于开启或者关闭静态代码检查
+# 调用源代码检查器（默认情况下，“sparse”）C编译的一部分
+# 使用 'make C=1' 使只重新编译的文件检查。
+# 使用 'make C=2'使所有源文件检查，无论是否重新编译。
+# 看文件"Documentation/sparse.txt"的更多细节，包括哪里有"sparse"的效用。
 ifeq ("$(origin C)", "command line")
   KBUILD_CHECKSRC = $(C)
 endif
@@ -159,50 +160,53 @@ ifndef KBUILD_CHECKSRC
   KBUILD_CHECKSRC = 0
 endif
 
-
+# 选项M,
 # 旧语法 make ... SUBDIRS=$PWD 依然支持
 ifdef SUBDIRS
   KBUILD_EXTMOD ?= $(SUBDIRS)
 endif
-#选项M/SUBDIRS，源码外模块编译时会用到
+# 选项M/SUBDIRS，用源码外模块编译时会用到
 # 使用make M=dir 指定要构建的外部模块的路径
 # 预先设置环境变量KBUILD_EXTMOD
 ifeq ("$(origin M)", "command line")
   KBUILD_EXTMOD := $(M)
 endif
 
-#如果建立一个外部模块我们不在乎 all:的规则,而_all取决于modules
+# 如果要构建外部模块，那么_all依赖于modules,否则_all依赖于all
 PHONY += all
 ifeq ($(KBUILD_EXTMOD),)
 _all: all
 else
 _all: modules
 endif
-#定义相关路径
-ifeq ($(KBUILD_SRC),)#变量KBUILD_SRC为空时，srctree为当前目录 
+#############################定义路径####################################
+
+# 定义源码相关路径
+ifeq ($(KBUILD_SRC),) # 变量KBUILD_SRC没有定义时，srctree为当前目录 
         srctree := .
 else
         ifeq ($(KBUILD_SRC)/,$(dir $(CURDIR)))
-                # 在源树的子目录中构建
+                # 当前运行环境在KBUILD_SRC子目录下
                 srctree := ..
         else
                 srctree := $(KBUILD_SRC)
         endif
 endif
+# 目标树为当前make环境下，
 objtree		:= .
 src		:= $(srctree)
 obj		:= $(objtree)
-#GNU make 可以识别一个特殊变量“VPATH”。通过变量“VPATH”可以指定依赖
-#文件的搜索路径,当规则的依赖文件在当前目录不存在时,make 会在此变量所指定的
-#目录下去寻找这些依赖文件
+# GNU make 可以识别一个特殊变量“VPATH”。通过变量“VPATH”可以指定依赖
+# 文件的搜索路径,当规则的依赖文件在当前目录不存在时,make 会在此变量所指定的
+# 目录下去寻找这些依赖文件
 VPATH		:= $(srctree)$(if $(KBUILD_EXTMOD),:$(KBUILD_EXTMOD))
-#全局化变量 srctree objtree VPATH 让子make 可见
+# 全局化变量 srctree objtree VPATH 让子make 可见
 export srctree objtree VPATH
-
+########################################################################
 # 确保 CDPATH 设置不干扰
 unexport CDPATH
-#########################################################################
-# 获取主机类型和主机系统
+
+######################获取主机类型和主机系统###############################
 # 执行shell命令  uname -m 查看主机类型
 # sed -e命令进行替换，比如将i386替换成i.86，并将结果放入变量HOSTARCH 。
 HOSTARCH := $(shell uname -m | \
@@ -215,15 +219,13 @@ HOSTARCH := $(shell uname -m | \
 	    -e s/macppc/powerpc/\
 	    -e s/sh.*/sh/)
 # uname -s 查看主机操作系统，tr '[:upper:]' '[:lower:]'将所有大写变小写，
-#然后假如有cygwin，替换成cygwin.*，并将结果放入变量HOSTOS 
+# 然后假如有cygwin，替换成cygwin.*，并将结果放入变量HOSTOS 
 HOSTOS := $(shell uname -s | tr '[:upper:]' '[:lower:]' | \
 	    sed -e 's/\(cygwin\).*/cygwin/')
-
 export	HOSTARCH HOSTOS
-
 #########################################################################
 
-# 为本地构建设置默认值为零
+# 为本机建构不需要交叉编译
 ifeq ($(HOSTARCH),$(ARCH))
 CROSS_COMPILE ?=
 endif
@@ -245,8 +247,8 @@ HOSTCXXFLAGS = -O2
 ifeq ($(HOSTOS),cygwin)
 HOSTCFLAGS	+= -ansi
 endif
-
-#------------------------------------------------------------------------------------------
+########################################################################
+#------------------------Mac OS 专用-----------------------------------
 # Mac OS X / Darwin的C预处理器是苹果专用。它产生大量的错误和警告。
 #我们想绕过它使用GNU C的CPP。为此我们通过-traditional-cpp选项编译。
 #请注意，传统的CPP标志与GNU C的标志没有相同的语义，
@@ -262,9 +264,7 @@ HOSTCFLAGS  += $(call os_x_before, 10, 4, "-traditional-cpp")
 HOSTLDFLAGS += $(call os_x_before, 10, 5, "-multiply_defined suppress")
 HOSTLDFLAGS += $(call os_x_before, 10, 7, "", "-Xlinker -no_pie")
 endif
-#------------------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------------------
+########################################################################
 #决定是否建立内置、模块或两者。通常只是做内置。
 #如果我们只有“make modules”，不编译内置对象。
 #当我们用 modversions 构建模块，我们需要在递归下降时考虑内置对象，
@@ -274,17 +274,15 @@ KBUILD_BUILTIN := 1
 ifeq ($(MAKECMDGOALS),modules)
   KBUILD_BUILTIN := $(if $(CONFIG_MODVERSIONS),1)
 endif
-#------------------------------------------------------------------------------------------
-
 export KBUILD_MODULES KBUILD_BUILTIN
 export KBUILD_CHECKSRC KBUILD_SRC KBUILD_EXTMOD
 
-# 我们需要一些通用的定义（不要试图重新创建文件）
+# scripts/Kbuild.include 不依赖其它文件，空命令解除隐式规则
 scripts/Kbuild.include: ;
 include scripts/Kbuild.include
+########################################################################
 
-#------------------------------------------------------------------------------------------
-# 定义交叉编译链工具
+##########################定义交叉编译链工具###############################
 AS		= $(CROSS_COMPILE)as
 # 总是使用 GNU ld
 ifneq ($(shell $(CROSS_COMPILE)ld.bfd -v 2> /dev/null),)
@@ -316,14 +314,14 @@ KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
 		   -fno-builtin -ffreestanding
 KBUILD_CFLAGS	+= -fshort-wchar
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-#--------------------------------------------------------------------------------------------
+########################################################################
 
 
 # 从 include/config/uboot.release读取 UBOOTRELEASE  (如果存在的话)
 UBOOTRELEASE = $(shell cat include/config/uboot.release 2> /dev/null)
 UBOOTVERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
 
-#以下这些环境变量在.config文件中定义了
+# 以下这些环境变量在.config文件中定义了
 export VERSION PATCHLEVEL SUBLEVEL UBOOTRELEASE UBOOTVERSION
 export ARCH CPU BOARD VENDOR SOC CPUDIR BOARDDIR
 export CONFIG_SHELL HOSTCC HOSTCFLAGS HOSTLDFLAGS CROSS_COMPILE AS LD CC
@@ -334,22 +332,24 @@ export HOSTCXX HOSTCXXFLAGS CHECK CHECKFLAGS DTC DTC_FLAGS
 export KBUILD_CPPFLAGS NOSTDINC_FLAGS UBOOTINCLUDE OBJCOPYFLAGS LDFLAGS
 export KBUILD_CFLAGS KBUILD_AFLAGS
 
-#编译时出树模块，把 MODVERDIR 置于模块中树而不是在内核树。内核树可能甚至是只读的。
+# 编译时出树模块，把 MODVERDIR 置于模块中树而不是在内核树。内核树可能甚至是只读的。
 export MODVERDIR := $(if $(KBUILD_EXTMOD),$(firstword $(KBUILD_EXTMOD))/).tmp_versions
 
-#在查找中忽略这些文件。。。
+# 在查找中忽略这些文件。。。
 export RCS_FIND_IGNORE := \( -name SCCS -o -name BitKeeper -o -name .svn -o    \
 			  -name CVS -o -name .pc -o -name .hg -o -name .git \) \
 			  -prune -o
 export RCS_TAR_IGNORE := --exclude SCCS --exclude BitKeeper --exclude .svn \
 			 --exclude CVS --exclude .pc --exclude .hg --exclude .git
 
-# ===========================================================================
+# ==============================================================
 # 规则共享 *config 目标和构建目标
-
+# build 变量在scripts/Kbuild.include
+# build := -f $(srctree)/scripts/Makefile.build obj
 PHONY += scripts_basic
 scripts_basic:
-	$(Q)$(MAKE) $(build)=scripts/basic
+	$(Q)$(MAKE) $(build)=scripts/basic 
+	#s相当于 @make -f scripts/Makefile.build obj=scripts/basic
 	$(Q)rm -f .tmp_quiet_recordmcount
 
 
@@ -450,20 +450,15 @@ scripts: scripts_basic include/config/auto.conf
 	$(Q)$(MAKE) $(build)=$(@)
 
 ifeq ($(dot-config),1)
-# Read in config
+# 处理 build-targets 目标。
+# 读取配置
 -include include/config/auto.conf
-
-# Read in dependencies to all Kconfig* files, make sure to run
-# oldconfig if changes are detected.
+#读all所有依赖的Kconfig *文件，如果检测到变化，确保运行oldconfig。
 -include include/config/auto.conf.cmd
-
-# To avoid any implicit rule to kick in, define an empty command
+# 为了避免出现任何隐含规则，定义一个空命令。
 $(KCONFIG_CONFIG) include/config/auto.conf.cmd: ;
 
-# If .config is newer than include/config/auto.conf, someone tinkered
-# with it and forgot to run make oldconfig.
-# if auto.conf.cmd is missing then we are probably in a cleaned tree so
-# we execute the config step to be sure to catch updated Kconfig files
+
 include/config/%.conf: $(KCONFIG_CONFIG) include/config/auto.conf.cmd
 	$(Q)$(MAKE) -f $(srctree)/Makefile silentoldconfig
 	@# If the following part fails, include/config/auto.conf should be
