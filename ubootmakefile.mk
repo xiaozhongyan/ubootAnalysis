@@ -803,7 +803,8 @@ cmd_mkimage = $(objtree)/tools/mkimage $(MKIMAGEFLAGS_$(@F)) -d $< $@ \
 quiet_cmd_mkfitimage = MKIMAGE $@
 cmd_mkfitimage = $(objtree)/tools/mkimage $(MKIMAGEFLAGS_$(@F)) -f $(U_BOOT_ITS) -E $@ \
 	$(if $(KBUILD_VERBOSE:1=), >$(MKIMAGEOUTPUT))
-
+# 注意在SHELL命令下 >表示重新写入 而>>表示继续写入
+# cmd_cat 显示依赖文件内容并重新写入到规则目标中
 quiet_cmd_cat = CAT     $@
 cmd_cat = cat $(filter-out $(PHONY), $^) > $@
 
@@ -838,7 +839,7 @@ dts/dt.dtb: u-boot
 	$(Q)$(MAKE) $(build)=dts dtbs
 
 quiet_cmd_copy = COPY    $@
-      cmd_copy = cp $< $@
+      cmd_copy = cp $< $@  #将规则的第一个依赖复制给规则目标
 
 ifeq ($(CONFIG_MULTI_DTB_FIT),y)
 
@@ -1273,7 +1274,8 @@ endif
 ifeq ($(CONFIG_RISCV),y)
 	@tools/prelink-riscv $@ 0
 endif
-
+# objdump用查看目标文件或者可执行的目标文件的构成
+# 将文件u-boot的符号表入口并写入u-boot.sym文件中。
 quiet_cmd_sym ?= SYM     $@
       cmd_sym ?= $(OBJDUMP) -t $< > $@
 u-boot.sym: u-boot FORCE
