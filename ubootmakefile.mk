@@ -513,7 +513,7 @@ ifndef LDSCRIPT
 	endif
 endif
 
-# If there is no specified link script, we look in a number of places for it
+# 如果没有指定的链接脚本，我们可以在许多地方查找它。
 ifndef LDSCRIPT
 	ifeq ($(wildcard $(LDSCRIPT)),)
 		LDSCRIPT := $(srctree)/board/$(BOARDDIR)/u-boot.lds
@@ -532,13 +532,13 @@ include/config/auto.conf: ;
 endif # $(dot-config)
 
 #
-# Xtensa linker script cannot be preprocessed with -ansi because of
+# Xtensa（一种处理器类型） linker script cannot be preprocessed with -ansi because of
 # preprocessor operations on strings that don't make C identifiers.
 #
 ifeq ($(CONFIG_XTENSA),)
 LDPPFLAGS	+= -ansi
 endif
-
+# gcc 对数据长度进行优化
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os
 else
@@ -804,7 +804,8 @@ cmd_mkimage = $(objtree)/tools/mkimage $(MKIMAGEFLAGS_$(@F)) -d $< $@ \
 quiet_cmd_mkfitimage = MKIMAGE $@
 cmd_mkfitimage = $(objtree)/tools/mkimage $(MKIMAGEFLAGS_$(@F)) -f $(U_BOOT_ITS) -E $@ \
 	$(if $(KBUILD_VERBOSE:1=), >$(MKIMAGEOUTPUT))
-
+# 注意在SHELL命令下 >表示重新写入 而>>表示继续写入
+# cmd_cat 显示依赖文件内容并重新写入到规则目标中
 quiet_cmd_cat = CAT     $@
 cmd_cat = cat $(filter-out $(PHONY), $^) > $@
 
@@ -839,7 +840,7 @@ dts/dt.dtb: u-boot
 	$(Q)$(MAKE) $(build)=dts dtbs
 
 quiet_cmd_copy = COPY    $@
-      cmd_copy = cp $< $@
+      cmd_copy = cp $< $@  #将规则的第一个依赖复制给规则目标
 
 ifeq ($(CONFIG_MULTI_DTB_FIT),y)
 
@@ -858,9 +859,10 @@ u-boot.bin: u-boot-fit-dtb.bin FORCE
 else ifeq ($(CONFIG_OF_SEPARATE),y)
 u-boot-dtb.bin: u-boot-nodtb.bin dts/dt.dtb FORCE
 	$(call if_changed,cat)
-
+# if_changed函数检测依赖文件是否有更新或目标文件是否不存在，
+# 是的话，直接将u-boot-dtb.bin复制为u-boot.bin
 u-boot.bin: u-boot-dtb.bin FORCE
-	$(call if_changed,copy)
+	$(call if_changed,copy) 
 else
 u-boot.bin: u-boot-nodtb.bin FORCE
 	$(call if_changed,copy)
@@ -1273,7 +1275,8 @@ endif
 ifeq ($(CONFIG_RISCV),y)
 	@tools/prelink-riscv $@ 0
 endif
-
+# objdump用查看目标文件或者可执行的目标文件的构成
+# 将文件u-boot的符号表入口并写入u-boot.sym文件中。
 quiet_cmd_sym ?= SYM     $@
       cmd_sym ?= $(OBJDUMP) -t $< > $@
 u-boot.sym: u-boot FORCE
@@ -1309,17 +1312,17 @@ include/config/uboot.release: include/config/auto.conf FORCE
 	$(call filechk,uboot.release)
 
 
-# Things we need to do before we recursively start building the kernel
-# or the modules are listed in "prepare".
-# A multi level approach is used. prepareN is processed before prepareN-1.
+# 在递归地开始构建内核或模块之前，我们需要做的事情在“准备”中列出。
+# 使用多层次方法。 prepareN 在prepareN-1之前执行.
 # archprepare is used in arch Makefiles and when processed asm symlink,
 # version.h and scripts_basic is processed / created.
 
-# Listed in dependency order
+# 按从属顺序列出
 PHONY += prepare archprepare prepare0 prepare1 prepare2 prepare3
 
 # prepare3 is used to check if we are building in a separate output directory,
 # and if so do:
+#   检查make是否在内核SRC中执行过
 # 1) Check that make has not been executed in the kernel src $(srctree)
 prepare3: include/config/uboot.release
 ifneq ($(KBUILD_SRC),)
@@ -1332,6 +1335,7 @@ ifneq ($(KBUILD_SRC),)
 endif
 
 # prepare2 creates a makefile if using a separate output directory
+# prepare2创建一个Makefile文件如果使用一个单独的输出目录
 prepare2: prepare3 outputmakefile
 
 prepare1: prepare2 $(version_h) $(timestamp_h) \
@@ -1481,15 +1485,14 @@ CHANGELOG:
 	unexpand -a | sed -e 's/\s\s*$$//' > $@
 
 #########################################################################
+# make mrproper命令会删除所有的编译生成文件、内核配置文件(.config文件)和各种备份文件，
+# 所以几乎只在第一次执行内核编译前才用这条命令。
 
-###
-# Cleaning is done on three levels.
-# make clean     Delete most generated files
-#                Leave enough to build external modules
-# make mrproper  Delete the current configuration, and all generated files
-# make distclean Remove editor backup files, patch leftover files and the like
+# make clean命令则是用于删除大多数的编译生成文件，但是会保留内核的配置文件.config，
+# 还有足够的编译支持来建立扩展模块。所以你若只想删除前一次编译过程的残留数据，
+# 只需执行make clean命令。
+# make distclean 命令删除编辑的备份文件，补丁文件，和 make mrproper删除的文件
 
-# Directories & files removed with 'make clean'
 CLEAN_DIRS  += $(MODVERDIR) \
 	       $(foreach d, spl tpl, $(patsubst %,$d/%, \
 			$(filter-out include, $(shell ls -1 $d 2>/dev/null))))
