@@ -1,5 +1,8 @@
-#
+# 关注知乎
+# https://zhuanlan.zhihu.com/p/35844089
+
 # SPDX-License-Identifier:	GPL-2.0+
+# 
 #
 
 VERSION = 2018			#版本号
