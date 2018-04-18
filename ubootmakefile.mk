@@ -653,13 +653,13 @@ libs-$(CONFIG_UT_ENV) += test/env/
 libs-$(CONFIG_UT_OVERLAY) += test/overlay/
 
 libs-y += $(if $(BOARDDIR),board/$(BOARDDIR)/)
-
-libs-y := $(sort $(libs-y))
+# 给字串“lib-y”中的单词以首字母为准进行排序(升序),并取掉重复的单词
+libs-y := $(sort $(libs-y))built-in
 
 u-boot-dirs	:= $(patsubst %/,%,$(filter %/, $(libs-y))) tools examples
 
 u-boot-alldirs	:= $(sort $(u-boot-dirs) $(patsubst %/,%,$(filter %/, $(libs-))))
-
+# 将每个 libs-y内的每个元素加上/build-in.o
 libs-y		:= $(patsubst %/, %/built-in.o, $(libs-y))
 
 u-boot-init := $(head-y)
@@ -1250,6 +1250,7 @@ ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(ARCH)/Makefile.postlink)
 
 # Rule to link u-boot
 # May be overridden by arch/$(ARCH)/config.mk
+# 功能：将uboot的编译的代码进行链接生成u-boot文件，并将Map内容保存在u-boot.map中
 quiet_cmd_u-boot__ ?= LD      $@
       cmd_u-boot__ ?= $(LD) $(LDFLAGS) $(LDFLAGS_u-boot) -o $@ \
       -T u-boot.lds $(u-boot-init)                             \
@@ -1266,6 +1267,7 @@ cmd_smap = \
 
 u-boot:	$(u-boot-init) $(u-boot-main) u-boot.lds FORCE
 	+$(call if_changed,u-boot__)
+#   内核符号表kallsyms
 ifeq ($(CONFIG_KALLSYMS),y)
 	$(call cmd,smap)
 	$(call cmd,u-boot__) common/system_map.o
@@ -1275,7 +1277,7 @@ ifeq ($(CONFIG_RISCV),y)
 	@tools/prelink-riscv $@ 0
 endif
 # objdump用查看目标文件或者可执行的目标文件的构成
-# 将文件u-boot的符号表入口并写入u-boot.sym文件中。
+# 将文件u-boot的符号表入口写入u-boot.sym文件中。
 quiet_cmd_sym ?= SYM     $@
       cmd_sym ?= $(OBJDUMP) -t $< > $@
 u-boot.sym: u-boot FORCE
