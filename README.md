@@ -22,3 +22,15 @@
 #                   第一版本的注释文件，现在弃用，作为ubootmakefile.mk的原参考文件
 # Uboot系统构建.docx
 #                   系统架构文档
+
+##文件类型注释：
+##  elf格式: https://blog.csdn.net/gx19862005/article/details/53350032
+##          https://blog.csdn.net/feglass/article/details/51469511
+##  
+##  srec格式：
+##  
+##  hex格式：
+## 
+##  img格式：
+##
+##  bin/hex/elf/srec/img 区别 https://blog.csdn.net/chun_1959/article/details/43731937
